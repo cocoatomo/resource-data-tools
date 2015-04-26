@@ -1,6 +1,6 @@
-package co.coatomo.asakusafw.dmverifier.csv;
+package co.coatomo.asakusafw.rdverifier.csv;
 
-import co.coatomo.asakusafw.dmverifier.Verifier;
+import co.coatomo.asakusafw.rdverifier.Verifier;
 
 public class DirectFileInputVerifier implements Verifier {
 

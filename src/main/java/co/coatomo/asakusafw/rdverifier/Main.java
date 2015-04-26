@@ -1,4 +1,4 @@
-package co.coatomo.asakusafw.dmverifier;
+package co.coatomo.asakusafw.rdverifier;
 
 import java.io.File;
 import java.io.FileInputStream;

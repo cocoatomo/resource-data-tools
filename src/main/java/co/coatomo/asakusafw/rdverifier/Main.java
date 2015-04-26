@@ -1,17 +1,21 @@
 package co.coatomo.asakusafw.rdverifier;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.asakusafw.runtime.directio.BinaryStreamFormat;
-import com.asakusafw.runtime.io.ModelInput;
-import com.asakusafw.runtime.model.DataModel;
+import co.coatomo.asakusafw.rdverifier.directio.DirectFileInputVerifier;
+import co.coatomo.asakusafw.rdverifier.util.ReflectionUtils;
+
 import com.asakusafw.vocabulary.directio.DirectFileInputDescription;
 
 public class Main {
@@ -24,53 +28,46 @@ public class Main {
 	 *            - Arguments passed from the command line
 	 **/
 	public static void main(String[] args) {
-		LOG.info("Main");
-		Main mainObject = new Main();
+		Options options = createOptions();
+		CommandLineParser parser = new PosixParser();
 		try {
-			// read the file path and the FQDN of ItemInfoFromCsv class from
-			// a configuration file or runtime arguments
-			mainObject.execute(new File("./src/test/resources/data.csv"),
-					"com.example.jobflow.ItemInfoFromCsv");
+			CommandLine commandLine = parser.parse(options, args);
+			Main main = new Main();
+			System.exit(main.execute(commandLine.getOptionValue("data-file"), commandLine.getOptionValue("dfid")));
+		} catch (ParseException e) {
+			LOG.error("argument parse error", e);
+			new HelpFormatter().printHelp("resource-data-verifier", options);
+			System.exit(1);
+		}
+	}
+
+	public int execute(String dataFilePath, String dfidClassName) {
+		LOG.info("verifying data file...");
+		Verifier<DirectFileInputDescription> verifier = new DirectFileInputVerifier();
+		try {
+			DirectFileInputDescription dfid = ReflectionUtils.getDirectFileInputDescription(dfidClassName);
+			verifier.verify(new File(dataFilePath), dfid);
+			LOG.info("verified data file");
+			return 0;
 		} catch (Throwable th) {
-			LOG.error("error", th);
-		} finally {
-			LOG.info("final");
+			LOG.error("failed to verify data file", th);
+			return 1;
 		}
 	}
 
-	public <T extends DataModel<T>> void execute(File dataFile,
-			String descriptorClassName) throws NoSuchMethodException,
-			InstantiationException, IllegalAccessException,
-			InvocationTargetException, IOException, InterruptedException,
-			ClassNotFoundException {
+	@SuppressWarnings("static-access")
+	private static Options createOptions() {
+		Options result = new Options();
 
-		Class<? extends DirectFileInputDescription> descriptionClass = Class
-				.forName(descriptorClassName).asSubclass(
-						DirectFileInputDescription.class);
-		Constructor<? extends DirectFileInputDescription> descriptionConstructor = descriptionClass
-				.getConstructor();
-		DirectFileInputDescription dfid = descriptionConstructor.newInstance();
+		Option directFileInputDescription = OptionBuilder.withArgName("classname").hasArg()
+				.withDescription("DirectFileInputDescription class name").isRequired().withLongOpt("dfid").create('d');
+		result.addOption(directFileInputDescription);
 
-		@SuppressWarnings("unchecked")
-		Class<BinaryStreamFormat<T>> dfClass = (Class<BinaryStreamFormat<T>>) dfid
-				.getFormat();
-		Constructor<BinaryStreamFormat<T>> constructor = dfClass
-				.getConstructor();
-		BinaryStreamFormat<T> bsf = constructor.newInstance();
+		Option dataFile = OptionBuilder.withArgName("file").hasArg().withDescription("data file path").isRequired()
+				.withLongOpt("data-file").create('f');
+		result.addOption(dataFile);
 
-		@SuppressWarnings("unchecked")
-		Class<T> modelType = (Class<T>) dfid.getModelType();
-		Constructor<T> modelConstructor = modelType.getConstructor();
-		T model = modelConstructor.newInstance();
-
-		try (ModelInput<T> mi = bsf.createInput(modelType,
-				dataFile.getCanonicalPath(), new FileInputStream(dataFile), 0,
-				dataFile.length())) {
-			while (mi.readTo(model)) {
-				System.out.println(model);
-			}
-		} catch (IOException e) {
-			LOG.error("[ERROR]", e);
-		}
+		return result;
 	}
+
 }

@@ -1,12 +1,11 @@
 package co.coatomo.asakusafw.dmverifier;
 
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import org.apache.commons.io.input.ReaderInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +63,9 @@ public class Main {
 		Constructor<T> modelConstructor = modelType.getConstructor();
 		T model = (T) modelConstructor.newInstance();
 
-		try (ModelInput<T> mi = bsf.createInput(modelType, dataFile
-				.getCanonicalPath(), new ReaderInputStream(new FileReader(
-				dataFile)), 0, dataFile.length())) {
+		try (ModelInput<T> mi = bsf.createInput(modelType,
+				dataFile.getCanonicalPath(), new FileInputStream(dataFile), 0,
+				dataFile.length())) {
 			while (mi.readTo(model)) {
 				System.out.println(model);
 			}

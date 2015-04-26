@@ -44,9 +44,9 @@ public class Main {
 			InvocationTargetException, IOException, InterruptedException,
 			ClassNotFoundException {
 
-		@SuppressWarnings("unchecked")
-		Class<? extends DirectFileInputDescription> descriptionClass = (Class<? extends DirectFileInputDescription>) Class
-				.forName(descriptorClassName);
+		Class<? extends DirectFileInputDescription> descriptionClass = Class
+				.forName(descriptorClassName).asSubclass(
+						DirectFileInputDescription.class);
 		Constructor<? extends DirectFileInputDescription> descriptionConstructor = descriptionClass
 				.getConstructor();
 		DirectFileInputDescription dfid = descriptionConstructor.newInstance();
@@ -61,7 +61,7 @@ public class Main {
 		@SuppressWarnings("unchecked")
 		Class<T> modelType = (Class<T>) dfid.getModelType();
 		Constructor<T> modelConstructor = modelType.getConstructor();
-		T model = (T) modelConstructor.newInstance();
+		T model = modelConstructor.newInstance();
 
 		try (ModelInput<T> mi = bsf.createInput(modelType,
 				dataFile.getCanonicalPath(), new FileInputStream(dataFile), 0,

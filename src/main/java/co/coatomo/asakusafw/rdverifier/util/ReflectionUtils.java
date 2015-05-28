@@ -2,6 +2,8 @@ package co.coatomo.asakusafw.rdverifier.util;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.net.URLClassLoader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +31,11 @@ public class ReflectionUtils {
 
 	// Direct I/O
 
-	public static DirectFileInputDescription getDirectFileInputDescription(String className) {
+	public static DirectFileInputDescription getDirectFileInputDescription(String className, URL[] jarFiles) {
+		ClassLoader classLoader = URLClassLoader.newInstance(jarFiles);
 		try {
-			Class<? extends DirectFileInputDescription> descriptionClass = Class.forName(className).asSubclass(
-					DirectFileInputDescription.class);
+			Class<? extends DirectFileInputDescription> descriptionClass = Class.forName(className, true, classLoader)
+					.asSubclass(DirectFileInputDescription.class);
 			Constructor<? extends DirectFileInputDescription> descriptionConstructor = descriptionClass
 					.getConstructor();
 			DirectFileInputDescription dfid = descriptionConstructor.newInstance();
